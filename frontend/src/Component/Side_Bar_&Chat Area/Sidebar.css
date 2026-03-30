@@ -651,16 +651,6 @@
     font-size: 14px;
 }
 
-.message-input button {
-    margin-left: 10px;
-    padding: 10px 20px;
-    border-radius: 20px;
-    border: none;
-    background-color: #00a884;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-}
 
 .image-container {
     position: relative;
@@ -1335,7 +1325,7 @@ body.dark .archived-chats .chat-item.archived .archive-btn {
         width: 100vw;
         height: 60px;
         min-width: 100vw;
-        gap: 230px;
+        gap: 30%;
         flex-direction: row;
         /* Icons horizontal ho jayenge */
         padding: 0 15px;
@@ -1598,3 +1588,65 @@ audio {
     }
 
 }
+
+.message-input {
+    width: 100% !important;
+    padding: 10px;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-top: 1px solid #ececec;
+    position: sticky;
+    bottom: 0;
+}
+
+.message-input input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    /* Modern chat look */
+    outline: none;
+    font-size: 16px;
+}
+
+/* Buttons ki styling */
+.message-input button {
+    padding: 10px 15px;
+    border-radius: 20px;
+    border: none;
+    background-color: #00a884;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .message-input {
+        gap: 6px !important;
+        padding: 8px 5px !important;
+    }
+
+    .message-input button {
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+    
+    .message-input label {
+        font-size: 22px !important;
+        padding: 0 5px;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+    .message-input {
+        padding: 10px 20px;
+    }
+}
+
+
+
+
+
