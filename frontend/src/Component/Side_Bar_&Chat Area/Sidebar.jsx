@@ -32,6 +32,7 @@ export default function Sidebar() {
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+     const pendingCandidates = useRef([]);
 
     // 1. Nayi state add karein
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -700,45 +701,86 @@ export default function Sidebar() {
 
 
     // 3. WebRTC Functions
-    const createPeer = (targetUserId) => {
-       const peer = new RTCPeerConnection({
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                {
-                    urls: "turn:openrelay.metered.ca:80",
-                    username: "openrelayproject",
-                    credential: "openrelayproject"
-                }
-            ]
-        });
-        
-        // const peer = new RTCPeerConnection({
-        //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-        // });
-
-        peer.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+const createPeer = (targetUserId) => {
+    const peer = new RTCPeerConnection({
+        iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: "turn:openrelay.metered.ca:80",
+                username: "openrelayproject",
+                credential: "openrelayproject"
             }
-        };
+        ]
+    });
 
-        peer.ontrack = (event) => {
-            console.log("Adding remote stream...");
-            if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = event.streams[0];
-            }
-        };
-
-        // Voice aur Video tracks ensure karein
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                console.log("Sending track:", track.kind); // console mein check karein 'audio' aur 'video' dono hai ya nahi
-                peer.addTrack(track, localStream);
-            });
+    peer.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
         }
-
-        return peer;
     };
+
+    peer.ontrack = (event) => {
+        console.log("Remote track received:", event.track.kind);
+        if (remoteVideoRef.current) {
+            // Streams set karein
+            remoteVideoRef.current.srcObject = event.streams[0];
+            // Mobile/Phone fix: Manually play trigger karein
+            remoteVideoRef.current.play().catch(err => console.error("Auto-play failed:", err));
+        }
+    };
+
+    // Tracks sirf tabhi add karein jab localStream available ho
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            peer.addTrack(track, localStream);
+        });
+    }
+
+    return peer;
+};
+
+
+
+    
+    // const createPeer = (targetUserId) => {
+    //    const peer = new RTCPeerConnection({
+    //         iceServers: [
+    //             { urls: "stun:stun.l.google.com:19302" },
+    //             {
+    //                 urls: "turn:openrelay.metered.ca:80",
+    //                 username: "openrelayproject",
+    //                 credential: "openrelayproject"
+    //             }
+    //         ]
+    //     });
+        
+    //     // const peer = new RTCPeerConnection({
+    //     //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    //     // });
+
+    //     peer.onicecandidate = (event) => {
+    //         if (event.candidate) {
+    //             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+    //         }
+    //     };
+
+    //     peer.ontrack = (event) => {
+    //         console.log("Adding remote stream...");
+    //         if (remoteVideoRef.current) {
+    //             remoteVideoRef.current.srcObject = event.streams[0];
+    //         }
+    //     };
+
+    //     // Voice aur Video tracks ensure karein
+    //     if (localStream) {
+    //         localStream.getTracks().forEach(track => {
+    //             console.log("Sending track:", track.kind); // console mein check karein 'audio' aur 'video' dono hai ya nahi
+    //             peer.addTrack(track, localStream);
+    //         });
+    //     }
+
+    //     return peer;
+    // };
 
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
@@ -831,26 +873,39 @@ export default function Sidebar() {
     };
 
     // --- 2. CALL ACCEPT ---
-    const acceptCall = async () => {
+const acceptCall = async () => {
     if (!incomingCall) return;
     
-    // Yahan camera on karna zaroori hai call uthane se pehle
-    const stream = await initializeMedia(); 
-    if (!stream) return alert("Camera/Mic access required to answer");
+    // 1. Pehle Media lo
+    const stream = await initializeMedia();
+    if (!stream) return alert("Camera/Mic access required");
 
     setIsCalling(true);
+    
+    // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
     const peer = createPeer(incomingCall.from);
     peerRef.current = peer;
 
-    // Tracks add karein taaki samne wale ko apki video dikhe
-    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+    try {
+        // 3. Remote offer set karein
+        await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
 
-    await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-    const answer = await peer.createAnswer();
-    await peer.setLocalDescription(answer);
+        // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
+        console.log("Clearing pending candidates:", pendingCandidates.length);
+        while (pendingCandidates.length > 0) {
+            const cand = pendingCandidates.shift();
+            await peer.addIceCandidate(new RTCIceCandidate(cand));
+        }
 
-    socket.emit("acceptCall", { to: incomingCall.from, answer });
-    setIncomingCall(null);
+        // 5. Answer bhejein
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+
+        socket.emit("acceptCall", { to: incomingCall.from, answer });
+        setIncomingCall(null);
+    } catch (err) {
+        console.error("Error in acceptCall flow:", err);
+    }
 };
     // const acceptCall = async () => {
     //     if (!incomingCall) return;
@@ -956,6 +1011,7 @@ export default function Sidebar() {
     ref={remoteVideoRef} 
     autoPlay 
     playsInline 
+    muted={false} // <--- VOICE KE LIYE
     className="remote-vid" 
 />
 
@@ -964,7 +1020,7 @@ export default function Sidebar() {
     ref={localVideoRef} 
     autoPlay 
     playsInline 
-    muted 
+   muted={false} // <--- VOICE KE LIYE
     className="local-vid" 
 />
 
