@@ -701,9 +701,20 @@ export default function Sidebar() {
 
     // 3. WebRTC Functions
     const createPeer = (targetUserId) => {
-        const peer = new RTCPeerConnection({
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-        });
+      onst peer = new RTCPeerConnection({
+        iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: "turn:your-turn-server-url.com", // Metered ya Twilio se lein
+                username: "your-username",
+                credential: "your-password"
+            }
+        ]
+    });
+        
+        // const peer = new RTCPeerConnection({
+        //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        // });
 
         peer.onicecandidate = (event) => {
             if (event.candidate) {
@@ -821,18 +832,39 @@ export default function Sidebar() {
 
     // --- 2. CALL ACCEPT ---
     const acceptCall = async () => {
-        if (!incomingCall) return;
-        setIsCalling(true);
-        const peer = createPeer(incomingCall.from);
-        peerRef.current = peer;
+    if (!incomingCall) return;
+    
+    // Yahan camera on karna zaroori hai call uthane se pehle
+    const stream = await initializeMedia(); 
+    if (!stream) return alert("Camera/Mic access required to answer");
 
-        await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
+    setIsCalling(true);
+    const peer = createPeer(incomingCall.from);
+    peerRef.current = peer;
 
-        socket.emit("acceptCall", { to: incomingCall.from, answer });
-        setIncomingCall(null);
-    };
+    // Tracks add karein taaki samne wale ko apki video dikhe
+    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+    await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+
+    socket.emit("acceptCall", { to: incomingCall.from, answer });
+    setIncomingCall(null);
+};
+    // const acceptCall = async () => {
+    //     if (!incomingCall) return;
+    //     setIsCalling(true);
+    //     const peer = createPeer(incomingCall.from);
+    //     peerRef.current = peer;
+
+    //     await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+    //     const answer = await peer.createAnswer();
+    //     await peer.setLocalDescription(answer);
+
+    //     socket.emit("acceptCall", { to: incomingCall.from, answer });
+    //     setIncomingCall(null);
+    // };
 
     // --- 3. CALL REJECT (Jab incoming call aaye aur aap 'Cut' karein) ---
     const rejectCall = () => {
@@ -918,11 +950,30 @@ export default function Sidebar() {
             {/* Active Video Call UI - Sirf unhe dikhega jo actually call par hain */}
             {isCalling && (
                 <div className="video-call-window">
+
+                 {/* Remote Video */}
+<video 
+    ref={remoteVideoRef} 
+    autoPlay 
+    playsInline 
+    className="remote-vid" 
+/>
+
+{/* Local Video  (Aapki apni)*/}
+<video 
+    ref={localVideoRef} 
+    autoPlay 
+    playsInline 
+    muted 
+    className="local-vid" 
+/>
+
+                    
                     {/* Remote Video (Dusre bande ki) */}
-                    <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" />
+                    {/* <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" /> */}
 
                     {/* Local Video (Aapki apni) */}
-                    <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" />
+                    {/* <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" /> */}
 
                     <button className="end-call-circle" onClick={endCall}>
                         <PhoneOff size={24} />
