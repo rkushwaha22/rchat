@@ -1079,7 +1079,7 @@ const acceptCall = async () => {
                             />
                             <label htmlFor="avatarUpload" className="avatar-label">
 
-                                 <img
+                                   <img
                                     src={
                                         currentUser.avatar
                                             ? currentUser.avatar.startsWith("http")
@@ -1090,13 +1090,7 @@ const acceptCall = async () => {
                                     alt="avatar"
                                     className="sidebar-avatar"
                                 />
-                                {/* <img
-                                    src={currentUser.avatar
-                                        ? `${backendUrl}${currentUser.avatar}`
-                                        : "./user.png"}  // fallback avatar
-                                    alt="avatar"
-                                    className="sidebar-avatar"
-                                /> */}
+                              
                             </label>
                             <span>Dp</span>
                         </div>
@@ -1151,6 +1145,7 @@ const acceptCall = async () => {
                                     .map((chat, k) => (
 
                                         <div className="chat-item archived" onClick={() => setSelectedChat(chat)}>
+                                            
                                              <img
                                                 src={
                                                     chat.avatar
@@ -1163,12 +1158,6 @@ const acceptCall = async () => {
                                                 className="chat-avatar"
                                             />
                                             
-                                            
-                                            {/* <img
-                                                src={chat.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
-                                                alt="avatar"
-                                                className="chat-avatar"
-                                            /> */}
                                             <div className="chat-info">
                                                 <span className="chat-name">{chat.name}</span>
                                                 <span className="chat-message">{lastMessages[chat._id] || "Start chatting..."}</span>
@@ -1216,11 +1205,7 @@ const acceptCall = async () => {
                                             className="chat-avatar"
                                         />
                                         
-                                        {/* <img
-                                            src={chat?.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
-                                            alt="avatar"
-                                            className="chat-avatar"
-                                        /> */}
+                                    
                                          {onlineUsers.includes(chat._id) ? (
                                                     <span className="online-dot"></span>
                                                 ) : (
@@ -1272,13 +1257,7 @@ const acceptCall = async () => {
                                     className="header-avatar"
                                 />
 
-                                
-
-                                {/* <img
-                                    src={selectedChat.avatar ? `${backendUrl}${selectedChat.avatar}` : "./user.png"}
-                                    alt="avatar"
-                                    className="header-avatar"
-                                /> */}
+                            
                                 <div className="header-info">
                                     <span className="header-name">{selectedChat.name}</span>
                                 </div>
@@ -1428,15 +1407,7 @@ const acceptCall = async () => {
                                 alt="avatar"
                                 className="no-chat-image"
                             />
-                            
-                            {/* <img
-                                src={currentUser?.avatar
-                                    ? `${backendUrl}${currentUser.avatar}`
-                                    : "./user.png"}  // fallback avatar
-                                alt="avatar"
-                                className="no-chat-image"
-                            // className="sidebar-avatar"
-                            /> */}
+                        
                             <h4>Hello {currentUser?.name}</h4>
                             <h2>Welcome to R-Chat</h2>
                             <p>Select a chat from the list on the left to start messaging your friends instantly.</p>
